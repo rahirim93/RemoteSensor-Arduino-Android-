@@ -11,11 +11,13 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.Message
+import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import java.text.SimpleDateFormat
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
@@ -145,5 +147,19 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         //Отказ от регистрации приемника при закрытии приложения
         unregisterReceiver(receiver)
+    }
+
+    fun sendMessage(view: View) {
+        // Нужно отрпавить текущее время
+        var calendar = Calendar.getInstance()
+        var year = calendar.get(Calendar.YEAR)
+        var month = calendar.get(Calendar.MONTH)
+        var day = calendar.get(Calendar.DAY_OF_MONTH)
+        var hours = calendar.get(Calendar.HOUR_OF_DAY)
+        var minutes = calendar.get(Calendar.MINUTE)
+        var seconds = calendar.get(Calendar.SECOND)
+        var sdf = SimpleDateFormat("Ddd.MM.yyyy", Locale.getDefault())
+        var a = sdf.format(calendar.time)
+        connectionThread.connectedThread.sendMessage("$year\n$month\n$day\n$hours\n$minutes\n$seconds\n")
     }
 }

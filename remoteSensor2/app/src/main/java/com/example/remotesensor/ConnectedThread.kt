@@ -6,6 +6,7 @@ import android.util.Log
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
+import java.util.*
 
 
 class ConnectedThread (mmSocket: BluetoothSocket?, myHandler: Handler) : Thread() {
@@ -102,11 +103,22 @@ class ConnectedThread (mmSocket: BluetoothSocket?, myHandler: Handler) : Thread(
             }
         }
 
-        fun write(bytes: ByteArray) {
-            try {
-                mmOutStream?.write(bytes)
-            } catch (e: Exception) {
+//        fun write(bytes: ByteArray) {
+//            try {
+//                mmOutStream?.write(bytes)
+//            } catch (e: Exception) {
+//
+//            }
+//        }
+    fun sendMessage(message: String) {
+        try {
+            // Нужно отправить текущее время
+            val calendar = Calendar.getInstance()
 
-            }
+            val messageBuffer = message.toByteArray()
+            mmOutStream?.write(messageBuffer)
+        } catch (e: Exception) {
+
         }
+    }
     }

@@ -1,5 +1,6 @@
 #include <iarduino_RTC.h>
 iarduino_RTC time(RTC_DS3231);
+// SDA - A4, SCL - A5
 
 #include <SoftwareSerial.h>
 
@@ -32,10 +33,17 @@ void setup() {
 void loop() {
   readCommand();
 
-  if (millis() % 1000 == 0) { // если прошла 1 секунда
-    Serial.println(time.gettime("d-m-Y, H:i:s, D")); // выводим время
-    delay(1); // приостанавливаем на 1 мс, чтоб не выводить время несколько раз за 1мс
-  }
+  if (mySerial.available() > 0) {
+    String a = "";
+    a.concat(mySerial.readString());
+    Serial.println(a);
+    //erial.write(mySerial.read());
+    
+    }
+  //  if (millis() % 1000 == 0) { // если прошла 1 секунда
+  //    Serial.println(time.gettime("d-m-Y, H:i:s, D")); // выводим время
+  //    delay(1); // приостанавливаем на 1 мс, чтоб не выводить время несколько раз за 1мс
+  //  }
 }
 
 // Функция чтения команд из порта
@@ -44,8 +52,7 @@ void readCommand() {
 
     int COMMAND_NUMBER = Serial.parseInt(); // Считываем с порта число команды
 
-    // Первая команда (при числе команды "1")
-    // Выводит список файлов
+    // Первая команда (при числе команды "1"). Выводит список файлов.
     if (COMMAND_NUMBER == 1) {
       Serial.println(F("Команда вывода списка файлов"));
       root2 = SD.open("/");
@@ -53,8 +60,7 @@ void readCommand() {
       root2.close();
     }
 
-    // Вторая команда (при числе команды "2")
-    // Создает файл с заданным именем
+    // Вторая команда (при числе команды "2"). Создает файл с заданным именем.
     if (COMMAND_NUMBER == 2) {
       Serial.println(F("Команда создания файла"));
       Serial.println(F("Введите имя нового файла"));
@@ -89,8 +95,7 @@ void readCommand() {
       }
     }
 
-    // Третья команда (при числе команды "3")
-    // Удаляет файл с заданным именем
+    // Третья команда (при числе команды "3"). Удаляет файл с заданным именем.
     if (COMMAND_NUMBER == 3) {
       Serial.println(F("Команда удаления файла"));
       Serial.println(F("Введите имя удаляемого файла"));
@@ -127,23 +132,16 @@ void readCommand() {
       }
     }
 
+    // Команда вывода содержимого файла в монитор порта
     if (COMMAND_NUMBER == 4) {
-      //Serial.println("Команда диагностики карты");
       myFile = SD.open("test.txt");
       if (myFile) {
         Serial.println(F("test.txt:"));
-        //int a = myFile.size();
-        //Serial.println(F(a));
         Serial.print(F("Размер: "));
         Serial.println(myFile.size(), DEC);
-
-
-
         // read from the file until there's nothing else in it:
         while (myFile.available()) {
           Serial.write(myFile.read());
-
-          //mySerial.write(myFile.read());
         }
         // close the file:
         myFile.close();
@@ -151,13 +149,10 @@ void readCommand() {
         // if the file didn't open, print an error:
         Serial.println(F("error opening test.txt"));
       }
-      //mySerial.print(382);
-      // mySerial.print("A");
-      //mySerial.println(3821);
     }
 
+    // Команда отправки на телефон
     if (COMMAND_NUMBER == 5) {
-      //Serial.println("Команда диагностики карты");
       myFile = SD.open("test.txt");
       if (myFile) {
         Serial.println(F("test.txt:"));
@@ -183,10 +178,6 @@ void readCommand() {
       //mySerial.print(382);
       // mySerial.print("A");
       //mySerial.println(3821);
-    }
-
-    if (COMMAND_NUMBER == 6) {
-      mySerial.print("Hello");
     }
   }
 }
@@ -226,9 +217,8 @@ void listCommands() {
   Serial.println(F("1 - Вывести список файлов"));
   Serial.println(F("2 - Создать файл"));
   Serial.println(F("3 - Удалить файл"));
-  //Serial.println("Список команд:");
-  //Serial.println("Список команд:");
-  //Serial.println("Список команд:");
+  Serial.println(F("4 - Вывод содержимого файла в монитор порта"));
+  Serial.println(F("5 - Отправка содержимого файла на телефон"));
 }
 
 void initCard() {
