@@ -151,15 +151,17 @@ class MainActivity : AppCompatActivity() {
 
     fun sendMessage(view: View) {
         // Нужно отрпавить текущее время
-        var calendar = Calendar.getInstance()
-        var year = calendar.get(Calendar.YEAR)
-        var month = calendar.get(Calendar.MONTH)
-        var day = calendar.get(Calendar.DAY_OF_MONTH)
-        var hours = calendar.get(Calendar.HOUR_OF_DAY)
-        var minutes = calendar.get(Calendar.MINUTE)
-        var seconds = calendar.get(Calendar.SECOND)
-        var sdf = SimpleDateFormat("Ddd.MM.yyyy", Locale.getDefault())
-        var a = sdf.format(calendar.time)
-        connectionThread.connectedThread.sendMessage("$year\n$month\n$day\n$hours\n$minutes\n$seconds\n")
+        val calendar = Calendar.getInstance()
+        val year = calendar.get(Calendar.YEAR)
+        val month = calendar.get(Calendar.MONTH)
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
+        val hours = calendar.get(Calendar.HOUR_OF_DAY)
+        val minutes = calendar.get(Calendar.MINUTE)
+        val seconds = calendar.get(Calendar.SECOND)
+        val sdf = SimpleDateFormat("Ddd.MM.yyyy", Locale.getDefault())
+        //var a = sdf.format(calendar.time)
+        connectionThread
+            .connectedThread
+            .sendMessage("${year}Y${month}M${day}D${hours}H${minutes}m${seconds}S")
     }
 }
