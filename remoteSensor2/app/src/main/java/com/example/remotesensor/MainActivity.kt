@@ -11,12 +11,18 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.Message
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import com.anychart.AnyChart
+import com.anychart.AnyChartView
+import com.anychart.chart.common.dataentry.DataEntry
+import com.anychart.chart.common.dataentry.ValueDataEntry
+import com.anychart.enums.ScaleTypes
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -44,6 +50,13 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var connectionThread: ConnectThread
 
+    private lateinit var buttonPrintLog: Button
+
+    private lateinit var anyChartView: AnyChartView
+    private lateinit var chart: com.anychart.charts.Cartesian
+
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -59,22 +72,80 @@ class MainActivity : AppCompatActivity() {
         bluetoothAdapter?.startDiscovery()
     }
 
+    private fun initChart() {
+        // Инициализация и настройка графика
+        anyChartView = findViewById(R.id.any_chart_view)
+        chart = AnyChart.line()
+        chart.xScale(ScaleTypes.LINEAR)
+        // Добавление линии нуля сетки графика
+        val zeroLine = chart.lineMarker(0).value(0).stroke("0.1 grey")
+        anyChartView.setZoomEnabled(true)
+        anyChartView.setChart(chart)
+    }
+
     private fun init() {
+        initChart()
+
         textView = findViewById(R.id.textView)
+        textView.textSize = 1.0f
         textView2 = findViewById(R.id.textView2)
+        textView2.textSize = 20.0f
 
         buttonConnect = findViewById(R.id.buttonConnect)
         buttonConnect.isEnabled = false // Блокировка кпопки
+
+        buttonPrintLog = findViewById(R.id.buttonPrintLog)
+        buttonPrintLog.setOnClickListener {
+            val dataHumidity = arrayListOf<DataEntry>()
+            val dataTemperature = arrayListOf<DataEntry>()
+            val list = connectionThread.connectedThread.list
+            if (list.size > 0) {
+                list.take(list.size - 2).forEach {
+                    val stringBuilder2 = StringBuilder()
+                    stringBuilder2.append(it)
+                    val indexTime = it.indexOf("T")
+                    val indexHumidity = it.indexOf("H")
+                    val indexTemperature = it.indexOf("t")
+
+                    val stringTime = stringBuilder2.substring(0, indexTime)
+                    val stringHumidity = stringBuilder2.substring(indexTime + 1, indexHumidity)
+                    val stringTemperature = stringBuilder2.substring(indexHumidity + 1, indexTemperature)
+
+                    stringBuilder2.delete(0, stringBuilder2.length)
+                    stringBuilder2.append(stringTime)
+                    val hours = stringBuilder2.substring(0, 2).toInt()
+                    val minutes = stringBuilder2.substring(3, 5).toInt()
+                    val seconds = stringBuilder2.substring(6, 8).toInt()
+                    val sumHours = hours + (minutes/60.0) + (seconds / 60.0 / 60.0)
+                    //Log.d("myLog", "$sumHours")
+
+                    val humidity = stringHumidity.toFloat()
+                    val temperature = stringTemperature.toFloat()
+
+                    dataHumidity.add(ValueDataEntry(sumHours, humidity))
+                    dataTemperature.add(ValueDataEntry(sumHours, temperature))
+
+
+
+                    //textView2.append("$stringTime $stringHumidity $stringTemperature\n")
+                }
+                chart.run {
+                    line(dataHumidity).stroke("0.2 black").name("Влажность")
+                    line(dataTemperature).stroke("0.2 red").name("Температура")
+                }
+                //list.clear()
+            }
+        }
 
         //Handler
         handler = object: Handler(Looper.myLooper()!!){
             override fun handleMessage(msg: Message) {
                 if (msg.what == 1) {
-                    textView.text = "Teмпература: ${msg.obj}"
+                    textView2.text = msg.obj.toString()
                 }
 
                 if (msg.what == 2) {
-                    textView.append("\n Влажность: ${msg.obj}")
+                    textView2.text = msg.obj.toString()
                 }
                 //textView.text = "Температура: ${msg.obj} \n Влажность: "
             }
@@ -135,7 +206,7 @@ class MainActivity : AppCompatActivity() {
     //Создать поток соединения и запускить
     private fun tryConnect() {
         if (myDevice != null) {
-            connectionThread = ConnectThread(myDevice, handler)
+            connectionThread = ConnectThread(myDevice, handler, this)
             connectionThread.start()
             Toast.makeText(this, "Попытка соединения", Toast.LENGTH_SHORT).show()
         } else {

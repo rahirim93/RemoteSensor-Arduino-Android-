@@ -6,44 +6,49 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
+    <com.anychart.AnyChartView
+        android:id="@+id/any_chart_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toTopOf="@+id/textView2"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+    </com.anychart.AnyChartView>
+
     <Button
         android:id="@+id/button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:onClick="click"
         android:text="Поиск"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintBottom_toTopOf="@+id/buttonNameFile"
+        app:layout_constraintStart_toEndOf="@+id/buttonConnect" />
 
     <Button
         android:id="@+id/buttonConnect"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
         android:onClick="connect"
         android:text="connect"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/button" />
+        app:layout_constraintBottom_toTopOf="@+id/buttonNameFile"
+        app:layout_constraintStart_toEndOf="@+id/buttonPrintLog" />
 
     <TextView
         android:id="@+id/textView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="20dp"
         android:text="TextView"
         app:layout_constraintBottom_toTopOf="@+id/button"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
     <Button
-        android:onClick="timePickerCall"
         android:id="@+id/buttonTimePicker"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="20dp"
+        android:onClick="timePickerCall"
         android:text="timePicker"
         app:layout_constraintBottom_toTopOf="@+id/textView"
         app:layout_constraintEnd_toEndOf="parent"
@@ -53,7 +58,6 @@
         android:id="@+id/textView2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="20dp"
         android:text="TextView"
         app:layout_constraintBottom_toTopOf="@+id/buttonTimePicker"
         app:layout_constraintEnd_toEndOf="parent"
@@ -99,4 +103,12 @@
         android:text="имя файла"
         app:layout_constraintBottom_toTopOf="@+id/buttonSendTime"
         app:layout_constraintStart_toEndOf="@+id/buttonGetData" />
+
+    <Button
+        android:id="@+id/buttonPrintLog"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="вывести в лог"
+        app:layout_constraintBottom_toTopOf="@+id/buttonGetData"
+        app:layout_constraintStart_toStartOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>
