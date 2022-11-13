@@ -252,6 +252,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun buttonNameFile(view: View) {
-        connectionThread.connectedThread.sendMessage("13112022")
+        //var a = sdf.format(calendar.time)
+
+        val calendar = Calendar.getInstance()
+        val sdf = SimpleDateFormat("ddMMyyyy", Locale.getDefault())
+        Log.d("myLog", sdf.format(calendar.time))
+        connectionThread.connectedThread.sendMessage(sdf.format(calendar.time))
+
+
     }
 }
