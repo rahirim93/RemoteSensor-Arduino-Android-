@@ -34,9 +34,6 @@ class ConnectedThread (mmSocket: BluetoothSocket?, myHandler: Handler) : Thread(
                     }
                     val buffer = ByteArray(bytes) // buffer store for the stream
 
-
-                    // Read from the InputStream
-
                     // Read from the InputStream
                     bytes = mmInStream.read(buffer) // Получаем кол-во байт и само собщение в байтовый массив "buffer"
                     sumBytes += bytes
@@ -112,9 +109,6 @@ class ConnectedThread (mmSocket: BluetoothSocket?, myHandler: Handler) : Thread(
 //        }
     fun sendMessage(message: String) {
         try {
-            // Нужно отправить текущее время
-            val calendar = Calendar.getInstance()
-
             val messageBuffer = message.toByteArray()
             mmOutStream?.write(messageBuffer)
         } catch (e: Exception) {

@@ -150,6 +150,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun sendMessage(view: View) {
+        //connectionThread.connectedThread.sendMessage("1563")
+        //setTime()
+    }
+    fun setTime() {
         // Нужно отрпавить текущее время
         val calendar = Calendar.getInstance()
         val year = calendar.get(Calendar.YEAR)
@@ -163,5 +167,20 @@ class MainActivity : AppCompatActivity() {
         connectionThread
             .connectedThread
             .sendMessage("${year}Y${month}M${day}D${hours}H${minutes}m${seconds}S")
+    }
+
+    fun buttonOn(view: View) {
+        connectionThread.connectedThread.sendMessage("2812")
+    }
+    fun buttonSendTime(view: View) {
+        setTime()
+    }
+
+    fun buttonGetData(view: View) {
+        connectionThread.connectedThread.sendMessage("3421")
+    }
+
+    fun buttonNameFile(view: View) {
+        connectionThread.connectedThread.sendMessage("13112022")
     }
 }
