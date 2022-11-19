@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.Message
+import android.util.Half.trunc
 import android.util.Log
 import android.view.View
 import android.widget.Button
@@ -19,12 +20,17 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.anychart.AnyChart
+import com.anychart.AnyChart.line
 import com.anychart.AnyChartView
 import com.anychart.chart.common.dataentry.DataEntry
 import com.anychart.chart.common.dataentry.ValueDataEntry
+import com.anychart.chart.common.listener.Event
+import com.anychart.chart.common.listener.ListenersInterface
+import com.anychart.core.Point
 import com.anychart.enums.ScaleTypes
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.collections.ArrayList
 
 class MainActivity : AppCompatActivity() {
     // Переменная для хранения соединенного потока
@@ -48,13 +54,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var myDevice: BluetoothDevice
     var founded = false
 
-    private lateinit var connectionThread: ConnectThread
+    lateinit var connectionThread: ConnectThread
 
     private lateinit var buttonPrintLog: Button
 
     private lateinit var anyChartView: AnyChartView
     private lateinit var chart: com.anychart.charts.Cartesian
-
+    private lateinit var buttonGetPoint: Button
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -70,17 +76,73 @@ class MainActivity : AppCompatActivity() {
         registerMyReceiver()
 
         bluetoothAdapter?.startDiscovery()
+
+
+
+        chart.getSelectedPoints()
+
+        buttonGetPoint = findViewById(R.id.buttonGetPoint)
+        buttonGetPoint.setOnClickListener {
+            chart.tooltip().displayMode("union")
+            //var point = chart.getSeries(1).getPoint(1)
+            //var point = Point()
+            //point.selected(true)
+            //chart.tooltip().
+            //val tooltip = chart.tooltip().
+            //chart.get
+        }
     }
 
     private fun initChart() {
         // Инициализация и настройка графика
         anyChartView = findViewById(R.id.any_chart_view)
         chart = AnyChart.line()
+
+        ///////////////////////////////// Работает
+        chart.tooltip().titleFormat("function() {\n" +
+                "return 'Время: ' " +
+                "+ Math.trunc(this.x) " +
+                "+ '.' " +
+                "+ Math.trunc((this.x - Math.trunc(this.x))*60);" +
+                "\n" +
+                "}")
+        ///////////////////////////////// Работает
+
+        ///////////////////////////////// И так работает
+//        chart.tooltip().titleFormat("function() {\n" +
+//                "var hours = Math.trunc(this.x);\n" +
+//                "return hours;" +
+//                "\n" +
+//                "}")
+        ///////////////////////////////// И так работает
+
         chart.xScale(ScaleTypes.LINEAR)
+        chart.xScale("continuous")
+        //chart.xScroller(true)
+        //chart.yScroller(true)
         // Добавление линии нуля сетки графика
         val zeroLine = chart.lineMarker(0).value(0).stroke("0.1 grey")
         anyChartView.setZoomEnabled(true)
         anyChartView.setChart(chart)
+
+        chart.setOnClickListener(object : ListenersInterface.OnClickListener(arrayOf("x", "value")) {
+            override fun onClick(event: Event?) {
+                if (event != null) {
+                    //var point = event.po
+                    val a = event.data["x"]
+                    val b = event.data["value"]
+                    Toast.makeText(this@MainActivity, a, Toast.LENGTH_SHORT).show()
+                    Log.d("myLog", "Индекс: $a")
+                    Log.d("myLog", "Значение: $b")
+
+                } else {
+                    Log.d("myLog", "Исключение")
+                }
+
+                //Toast.makeText(this, a, Toast.LENGTH_SHORT)
+            }
+
+        })
     }
 
     private fun init() {
@@ -96,46 +158,10 @@ class MainActivity : AppCompatActivity() {
 
         buttonPrintLog = findViewById(R.id.buttonPrintLog)
         buttonPrintLog.setOnClickListener {
-            val dataHumidity = arrayListOf<DataEntry>()
-            val dataTemperature = arrayListOf<DataEntry>()
-            val list = connectionThread.connectedThread.list
-            if (list.size > 0) {
-                list.take(list.size - 2).forEach {
-                    val stringBuilder2 = StringBuilder()
-                    stringBuilder2.append(it)
-                    val indexTime = it.indexOf("T")
-                    val indexHumidity = it.indexOf("H")
-                    val indexTemperature = it.indexOf("t")
-
-                    val stringTime = stringBuilder2.substring(0, indexTime)
-                    val stringHumidity = stringBuilder2.substring(indexTime + 1, indexHumidity)
-                    val stringTemperature = stringBuilder2.substring(indexHumidity + 1, indexTemperature)
-
-                    stringBuilder2.delete(0, stringBuilder2.length)
-                    stringBuilder2.append(stringTime)
-                    val hours = stringBuilder2.substring(0, 2).toInt()
-                    val minutes = stringBuilder2.substring(3, 5).toInt()
-                    val seconds = stringBuilder2.substring(6, 8).toInt()
-                    val sumHours = hours + (minutes/60.0) + (seconds / 60.0 / 60.0)
-                    //Log.d("myLog", "$sumHours")
-
-                    val humidity = stringHumidity.toFloat()
-                    val temperature = stringTemperature.toFloat()
-
-                    dataHumidity.add(ValueDataEntry(sumHours, humidity))
-                    dataTemperature.add(ValueDataEntry(sumHours, temperature))
-
-
-
-                    //textView2.append("$stringTime $stringHumidity $stringTemperature\n")
-                }
-                chart.run {
-                    line(dataHumidity).stroke("0.2 black").name("Влажность")
-                    line(dataTemperature).stroke("0.2 red").name("Температура")
-                }
-                //list.clear()
-            }
+            //draw()
         }
+
+
 
         //Handler
         handler = object: Handler(Looper.myLooper()!!){
@@ -147,10 +173,19 @@ class MainActivity : AppCompatActivity() {
                 if (msg.what == 2) {
                     textView2.text = msg.obj.toString()
                 }
+
+                if (msg.what == 3) {
+                    textView2.text = msg.obj.toString()
+                }
+
+                if (msg.what == 4) {
+                    draw(connectionThread, chart)
+                }
                 //textView.text = "Температура: ${msg.obj} \n Влажность: "
             }
         }
     }
+
 
     private fun requestPermissions() {
         // Запрос разрешения на использование геолокации
@@ -243,6 +278,7 @@ class MainActivity : AppCompatActivity() {
     fun buttonOn(view: View) {
         connectionThread.connectedThread.sendMessage("2812")
     }
+
     fun buttonSendTime(view: View) {
         setTime()
     }
@@ -252,13 +288,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun buttonNameFile(view: View) {
-        //var a = sdf.format(calendar.time)
+        sendDate()
+    }
 
+    fun sendDate() {
         val calendar = Calendar.getInstance()
         val sdf = SimpleDateFormat("ddMMyyyy", Locale.getDefault())
         Log.d("myLog", sdf.format(calendar.time))
         connectionThread.connectedThread.sendMessage(sdf.format(calendar.time))
-
-
     }
 }

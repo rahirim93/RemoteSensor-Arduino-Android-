@@ -15,6 +15,7 @@ DHT dht(DHTPIN, DHT11);
 SoftwareSerial mySerial(2, 3);  // указываем пины rx и tx соответственно
 
 long counter;
+long counter1;
 
 // Для работы с SD
 #include <SPI.h>
@@ -39,7 +40,8 @@ void setup() {
   mySerial.begin(9600);
   Serial.begin(9600);
   initCard();
-  //listCommands();
+  //String time111(time.gettimeUnix());
+  //Serial.println(time111);
 }
 
 void loop() {
@@ -47,24 +49,117 @@ void loop() {
 
   readCommand();
 
+  // Старый счетчик привязанный к счетчику платы ардуино
+  //  if (isWrite) {
+  //    if (millis() - counter > 300000) {
+  //      counter = millis();
+  //      test2222();
+  //    }
+  //  }
+
+  // Новый счетчик привязанный к модулю времени
+  //if (millis() - counter > 1000) {
   if (isWrite) {
-    if (millis() - counter > 300000) {
-      counter = millis();
-      test2222();
-    }
+    sdCounter();
+  }
+  //}
+}
+
+// Создание файла и запись ТМИ
+void writeDataToSD() {
+  String a = time.gettime("dmY");   // Получаем дату для формирования имени файла в формате ГГГГММДД
+  a.concat(".txt");                 // Прибавляем расширение файла
+  myFile = SD.open(a, FILE_WRITE);  // Открываем/создаем для записи
+  if (myFile) {
+    myFile.print(stringOfData());  // Записываем строку с ТМИ
+    myFile.close();                // Закрываем
+  } else {
+    myFile.close();
   }
 }
 
-void test2222() {
-  //Serial.println(time.gettime("d.m.Y"));
-  String a = time.gettime("dmY");
-  a.concat(".txt");
-  //Serial.println(a);
-  myFile = SD.open(a, FILE_WRITE);
-  if (myFile) {
-    myFile.print(stringOfData());
-    myFile.close();
+// Счетчик привязанный к модулю времени
+void sdCounter() {
+  // При первом запуске, когда файла еще нет.
+  // Существует ли файл
+  // Если не существует, то создаем и записываем текущее время в секундах с Unix
+  if (!SD.exists("pref.txt")) {
+    myFile = SD.open("pref.txt", FILE_WRITE);  // Open
+    String b(time.gettimeUnix());
+    myFile.print(b);
+    myFile.close();  // Close
   }
+
+  // Если файл уже существует
+  // То считать время из файла
+  myFile = SD.open("pref.txt");  // Open
+  String str = "";
+  while (myFile.available()) {
+    str.concat(myFile.readString());
+  }
+  myFile.close();  // Закрываем для чтения
+
+
+  // Если прошел заданный промежуток времени
+  if (time.gettimeUnix() - str.toInt() > 300) {
+    mySerial.write("3021\n");
+    writeDataToSD();                           // Записываем ТМИ
+    SD.remove("pref.txt");                     // Удаляем
+    myFile = SD.open("pref.txt", FILE_WRITE);  // Создаем новый
+    String b(time.gettimeUnix());              // Считываем новое время
+    myFile.print(b);                           // Записываем новое время
+    myFile.close();                            // Закрываем
+  }
+  //myFile.close();
+
+
+
+  // Рабочая версия///////////////////
+  // if (millis() - counter1 > 1000) {
+  //   String str = "";
+  //   counter1 = millis();
+  //   myFile = SD.open("pref.txt");
+  //   while (myFile.available()) {
+  //     str.concat(myFile.readString());
+  //   }
+  //   long j = str.toInt();          // Время считанное с SD в секундах
+  //   long j1 = time.gettimeUnix();  // Время текущее в секундах с Unix
+  //   Serial.println(j);
+  //   Serial.println(j1);
+  //   Serial.println(j1 - j);
+  //   myFile.close();
+  /////////////////////
+  // counter1 = millis();
+  // myFile = SD.open("pref.txt");
+  // long j = long(myFile.read());
+  // long j1 = time.gettimeUnix();
+  // Serial.println(j);
+  // Serial.println(j1);
+  // Serial.println(j1 - j);
+  // myFile.close();
+}
+
+
+// myFile = SD.open("pref.txt");
+// if (myFile) {
+//   if (myFile.available() == 0) {
+//     myFile.close();
+//     myFile = SD.open("pref.txt", FILE_WRITE);
+//     String b(time.gettimeUnix());
+//     myFile.print(b);
+//     myFile.close();
+//   }
+
+// myFile = SD.open("pref.txt", FILE_WRITE);
+// while (myFile.available()) {
+//   Serial.println(myFile.read());
+// }
+// myFile.close();
+
+
+
+// Функция получения времени в минутах
+int timeInMinutes() {
 }
 
 // Возвращает втроку для записи в файл
@@ -90,320 +185,6 @@ String stringOfData() {
 
 
   return curentTime;
-}
-
-boolean funSetTimeInRTC() {
-  // Очистка порта
-  //while (mySerial.available()) mySerial.read();
-  //Протокол взаимодействия
-  // C андроида нужно отправить строку вида: ГОД+Y+МЕСЯЦ+M+ДЕНЬ+D+ЧАСЫ+H+МИНУТЫ+m+СЕКУНДЫ+S
-  if (mySerial.available() > 0) {
-    String a = "";
-    a.concat(mySerial.readString());  // Получаем строку с телефона
-    // Находим индексы разделителей
-    int yearIndex = a.indexOf("Y");     // Индекс года
-    int monthIndex = a.indexOf("M");    // Индекс месяца
-    int dayIndex = a.indexOf("D");      // Индекс дня
-    int hoursIndex = a.indexOf("H");    // Индекс часов
-    int minutesIndex = a.indexOf("m");  // Индекс минут
-    int secondsIndex = a.indexOf("S");  // Индекс секунд
-    // Извлекаем данные по найденным индексам
-    // При настройке времени используются только два последних символа года.
-    // Нарпимер, при годе 2022 это 22. Поэтому вытаскиваем только две последние цифры.
-    int year = (a.substring(2, yearIndex)).toInt();
-    // В андроиде месяцы от 0 до 11, в ардуино от 1 до 12. Поэтому при настройке прибалвяем 1.
-    int month = (a.substring(yearIndex + 1, monthIndex)).toInt() + 1;
-    int day = (a.substring(monthIndex + 1, dayIndex)).toInt();
-    int hours = (a.substring(dayIndex + 1, hoursIndex)).toInt();
-    int minutes = (a.substring(hoursIndex + 1, minutesIndex)).toInt();
-    int seconds = (a.substring(minutesIndex + 1, secondsIndex)).toInt() + 2;
-    // Настраиваем время
-    time.settime(seconds, minutes, hours, day, month, year);
-    return 1;
-  } else return false;
-}
-
-void readCommandFromAndroid() {
-  if (mySerial.available() > 0) {
-    int COMMAND_NUMBER = mySerial.readString().toInt();
-    // Команда включения/выключения записи ТМИ
-    if (COMMAND_NUMBER == 1563) {
-      isWrite = !isWrite;
-    }
-
-    // Команда настройки времени
-    if (COMMAND_NUMBER == 2812) {
-      mySerial.write("Setting time");
-      mySerial.write("\n");
-      while (1) {
-        if (funSetTimeInRTC() == true) break;
-      }
-      mySerial.write(time.gettime("d-m-Y, H:i:s, D"));
-      mySerial.write("\n");
-    }
-
-    // Команда сброса данных на телефон
-    if (COMMAND_NUMBER == 3421) {
-      while (mySerial.available()) mySerial.read();
-      mySerial.write("4532\n");
-      // Строка для хранения имени отправляемого файла
-      String name = "";
-      // Ожидаем ввода имени отправляемого файла
-      while (true) {
-        if (mySerial.available() > 0) {
-          name = mySerial.readString();  // Считываем имя отправляемого файла
-          name += ".txt";                // Добавляем тип файла
-          if (!SD.exists(name)) {
-            //Serial.println(F("Такого файла нет"));
-            break;
-          } else {
-            //Serial.println(F("Файл с таким именем существует"));
-          }
-          //Serial.println(F("Отправка содержимого файла"));
-          myFile = SD.open(name);
-          if (myFile) {
-            Serial.println("Start");
-            while (myFile.available()) {
-              //Serial.println(myFile.available());
-              mySerial.write(myFile.read());
-              //Serial.println(".");
-              //delay();
-            }
-            Serial.println(F("Finished"));
-            myFile.close();
-            delay(1000);
-            mySerial.write("DONE");
-            mySerial.write("\n");
-            break;
-          } else {
-            // if the file didn't open, print an error:
-            //Serial.println(F("error opening test.txt"));
-            //listCommands();
-            break;
-          }
-        }
-      }
-    }
-  }
-}
-
-// Функция чтения команд из порта
-void readCommand() {
-  if (Serial.available() > 0) {
-
-    int COMMAND_NUMBER = Serial.parseInt();  // Считываем с порта число команды
-
-    // Первая команда (при числе команды "1"). Выводит список файлов.
-    if (COMMAND_NUMBER == 1) {
-      Serial.println(F("Команда вывода списка файлов"));
-      root2 = SD.open("/");
-      printDirectory(root2, 0);
-      root2.close();
-      listCommands();
-    }
-
-    // Вторая команда (при числе команды "2"). Создает файл с заданным именем.
-    if (COMMAND_NUMBER == 2) {
-      Serial.println(F("Команда создания файла"));
-      Serial.println(F("Введите имя нового файла"));
-      Serial.println(F("В найстройках порта выберете Нет конца строки"));
-
-      // Очистка порта
-      while (Serial.available()) Serial.read();
-
-      // Строка для хранения имени файла
-      String name = "";
-
-      // Ожидаем ввода имени нового файла
-      while (true) {
-        if (Serial.available() > 0) {
-          name = Serial.readString();  // Считываем имя нового файла
-          name += ".txt";              // Добавляем тип файла
-          Serial.println("Имя нового файла: " + name);
-          // Проверяем есть ли уже такой файл
-          if (!SD.exists(name)) {
-            Serial.println(F("Такого файла нет"));
-          } else {
-            Serial.println(F("Файл с таким именем уже существует"));
-            break;
-          }
-
-          Serial.println(F("Создание файла"));
-          myFile = SD.open(name, FILE_WRITE);
-          if (myFile) Serial.println(F("Файл создан"));
-          myFile.close();
-          break;
-        }
-      }
-      listCommands();
-    }
-
-    // Третья команда (при числе команды "3"). Удаляет файл с заданным именем.
-    if (COMMAND_NUMBER == 3) {
-      Serial.println(F("Команда удаления файла"));
-      Serial.println(F("Введите имя удаляемого файла"));
-      Serial.println(F("В найстройках порта выберете Нет конца строки"));
-
-      // Очистка порта
-      while (Serial.available()) Serial.read();
-
-      // Строка для хранения имени удаляемого файла
-      String name = "";
-
-      // Ожидаем ввода имени удаляемого файла
-      while (true) {
-        if (Serial.available() > 0) {
-          name = Serial.readString();  // Считываем имя удаляемого файла
-          name += ".txt";              // Добавляем тип файла
-          Serial.println("Имя удаляемого файла: " + name);
-          // Проверяем есть ли такой файл
-          if (!SD.exists(name)) {
-            Serial.println(F("Такого файла нет"));
-            break;
-          } else {
-            Serial.println(F("Файл с таким именем существует"));
-          }
-
-          Serial.println(F("Удаление файла"));
-          if (SD.remove(name)) {
-            Serial.println(F("Файл удален"));
-          } else {
-            Serial.println(F("Файл не удален"));
-          }
-          break;
-        }
-      }
-      listCommands();
-    }
-
-    // Команда вывода содержимого файла в монитор порта
-    if (COMMAND_NUMBER == 4) {
-      Serial.println(F("Команда вывода содержимого файла"));
-      Serial.println(F("Введите имя выводимого файла"));
-      Serial.println(F("В найстройках порта выберете Нет конца строки"));
-      // Очистка порта
-      while (Serial.available()) Serial.read();
-      // Строка для хранения имени удаляемого файла
-      String name = "";
-      // Ожидаем ввода имени удаляемого файла
-      while (true) {
-        if (Serial.available() > 0) {
-          name = Serial.readString();  // Считываем имя удаляемого файла
-          name += ".txt";              // Добавляем тип файла
-          Serial.print(F("Имя выводимого файла: "));
-          Serial.println(name);
-          // Проверяем есть ли такой файл
-          if (!SD.exists(name)) {
-            Serial.println(F("Такого файла нет"));
-            break;
-          } else {
-            Serial.println(F("Файл с таким именем существует"));
-          }
-
-          Serial.println(F("Вывод содержимого файла"));
-
-          myFile = SD.open(name);
-          if (myFile) {
-            while (myFile.available()) {
-              Serial.write(myFile.read());
-            }
-            myFile.close();
-            listCommands();
-            break;
-          } else {
-            // if the file didn't open, print an error:
-            Serial.println(F("error opening test.txt"));
-            listCommands();
-            break;
-          }
-        }
-      }
-    }
-
-    // // Команда отправки на телефон
-    // if (COMMAND_NUMBER == 5) {
-    //   //Serial.println(F("Команда отправки содержимого файла на телефон"));
-    //   //Serial.println(F("Введите имя отправляемого файла"));
-    //   //Serial.println(F("В найстройках порта выберете Нет конца строки"));
-    //   // Очистка порта
-    //   while (Serial.available()) Serial.read();
-    //   // Строка для хранения имени отправляемого файла
-    //   String name = "";
-    //   // Ожидаем ввода имени отправляемого файла
-    //   while (true) {
-    //     if (Serial.available() > 0) {
-    //       name = Serial.readString();  // Считываем имя отправляемого файла
-    //       name += ".txt";              // Добавляем тип файла
-    //       //Serial.print(F("Имя отправляемого файла: "));
-    //       //Serial.println(name);
-    //       // Проверяем есть ли такой файл
-    //       if (!SD.exists(name)) {
-    //         //Serial.println(F("Такого файла нет"));
-    //         break;
-    //       } else {
-    //         //Serial.println(F("Файл с таким именем существует"));
-    //       }
-    //       //Serial.println(F("Отправка содержимого файла"));
-    //       myFile = SD.open(name);
-    //       if (myFile) {
-    //         while (myFile.available()) {
-    //           mySerial.write(myFile.read());
-    //         }
-    //         myFile.close();
-    //         //listCommands();
-    //         break;
-    //       } else {
-    //         // if the file didn't open, print an error:
-    //         //Serial.println(F("error opening test.txt"));
-    //         //listCommands();
-    //         break;
-    //       }
-    //     }
-    //   }
-    // }
-
-    // Команда вывода времени в монитор порта
-    if (COMMAND_NUMBER == 6) {
-      Serial.println(time.gettime("d-m-Y, H:i:s, D"));  // выводим время
-      listCommands();
-    }
-
-    // Команда режима настройки времени
-    // if (COMMAND_NUMBER == 7) {
-    //   Serial.println(F("Отправьте время с телефона"));
-    //   while (1) {
-    //     if (funSetTimeInRTC() == true) break;
-    //   }
-    //   Serial.println(F("Настройка времени завершена"));
-    //   Serial.print(F("Время: "));
-    //   Serial.println(watch.gettime("d-m-Y, H:i:s, D"));
-    //   listCommands();
-    // }
-
-    if (COMMAND_NUMBER == 8) {
-      isWrite = !isWrite;
-      listCommands();
-    }
-
-    if (COMMAND_NUMBER == 11) {
-      // Очистка порта
-      long counter;
-      while (Serial.available()) Serial.read();
-      while (true) {
-        if (millis() - counter > 1000) {
-          counter = millis();
-          Serial.print(".");
-        }
-        if (Serial.available() > 0) {
-          while (Serial.available()) {
-            mySerial.write(Serial.read());
-          }
-          Serial.println(F("Sent"));
-          break;
-        }
-      }
-    }
-  }
 }
 
 void printDirectory(File dir, int numTabs) {
