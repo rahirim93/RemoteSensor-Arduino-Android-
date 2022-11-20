@@ -8,15 +8,14 @@ void readCommandFromAndroid() {
 
     // Команда настройки времени
     if (COMMAND_NUMBER == 2812) {
-      mySerial.write("Setting time");
-      mySerial.write("\n");
+      mySerial.write("3842\n");
       while (1) {
-        if (funSetTimeInRTC() == true) break;
+        if (funSetTimeInRTCNew() == true) break;
       }
       mySerial.write(time.gettime("d-m-Y, H:i:s, D"));
       mySerial.write("\n");
-      mySerial.write(time.gettimeUnix());
-      mySerial.write("\n");
+      delay(1000);
+      mySerial.write("8432\n");
     }
 
     // Команда сброса данных на телефон

@@ -41,6 +41,9 @@ class MainActivity : AppCompatActivity() {
     var connectionThread: ConnectThread? = null
 
     private lateinit var buttonGetData: Button
+    private lateinit var buttonSyncTime: Button
+    private lateinit var buttonDiscovery: Button
+
 
     private lateinit var anyChartView: AnyChartView
     private lateinit var chart: com.anychart.charts.Cartesian
@@ -109,6 +112,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initButtons() {
+        buttonSyncTime = findViewById(R.id.buttonSyncTime)
+        buttonSyncTime.setOnClickListener {
+            connectionThread?.connectedThread?.sendMessage("2812")
+        }
+
+        buttonDiscovery = findViewById(R.id.buttonDiscovery)
+        buttonDiscovery.setOnClickListener {
+            bluetoothAdapter?.startDiscovery()
+        }
+
         buttonGetData = findViewById(R.id.buttonGetData)
         buttonGetData.setOnClickListener {
             if (connectionThread != null) {
@@ -152,6 +165,10 @@ class MainActivity : AppCompatActivity() {
                 if (msg.what == 8) {
                     textView2.text = msg.obj.toString()
                 }
+
+                if (msg.what == 9) {
+                    textView2.text = msg.obj.toString()
+                }
             }
         }
     }
@@ -189,11 +206,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    //Кнопка начала поиска устройств
-    fun click(view: android.view.View) {
-        bluetoothAdapter?.startDiscovery()
-    }
-
     //Создать поток соединения и запускить
     private fun tryConnect() {
         if (myDevice != null) {
@@ -208,27 +220,5 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         //Отказ от регистрации приемника при закрытии приложения
         unregisterReceiver(receiver)
-    }
-
-    private fun setTime() {
-        // Нужно отрпавить текущее время
-        val calendar = Calendar.getInstance()
-        val year = calendar.get(Calendar.YEAR)
-        val month = calendar.get(Calendar.MONTH)
-        val day = calendar.get(Calendar.DAY_OF_MONTH)
-        val hours = calendar.get(Calendar.HOUR_OF_DAY)
-        val minutes = calendar.get(Calendar.MINUTE)
-        val seconds = calendar.get(Calendar.SECOND)
-        //val sdf = SimpleDateFormat("Ddd.MM.yyyy", Locale.getDefault())
-        //var a = sdf.format(calendar.time)
-        connectionThread?.connectedThread?.sendMessage("${year}Y${month}M${day}D${hours}H${minutes}m${seconds}S")
-    }
-
-    fun buttonOn(view: View) {
-        connectionThread?.connectedThread?.sendMessage("2812")
-    }
-
-    fun buttonSendTime(view: View) {
-        setTime()
     }
 }

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -10,55 +11,56 @@
         android:id="@+id/any_chart_view"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@+id/textView2"
+        app:layout_constraintBottom_toTopOf="@+id/linea1"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"></com.anychart.AnyChartView>
+        app:layout_constraintTop_toTopOf="parent"/>
 
-    <Button
-        android:id="@+id/button"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:id="@+id/linea1"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:onClick="click"
-        android:text="Поиск"
-        app:layout_constraintBottom_toTopOf="@+id/buttonSendTime"
-        app:layout_constraintStart_toEndOf="@+id/buttonGetData" />
-
-
-    <TextView
-        android:id="@+id/textView2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintBottom_toTopOf="@+id/button"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        tools:text="Выбранное время" />
+        app:layout_constraintStart_toStartOf="parent">
 
-    <Button
-        android:id="@+id/buttonSendTime"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:onClick="buttonSendTime"
-        android:text="отправить время"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/buttonOn" />
+        <TextView
+            android:id="@+id/textView2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            tools:text="Выбранное время" />
 
-    <Button
-        android:onClick="buttonOn"
-        android:id="@+id/buttonOn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="включить режим "
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
 
-    <Button
-        android:id="@+id/buttonGetData"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="4dp"
-        android:text="получить данные"
-        app:layout_constraintBottom_toTopOf="@+id/buttonOn"
-        app:layout_constraintStart_toStartOf="parent" />
+            <Button
+                android:id="@+id/buttonDiscovery"
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:text="Поиск" />
 
+
+            <Button
+                android:id="@+id/buttonSyncTime"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="синхронизировать \n время"
+                android:textSize="8sp"
+                app:iconPadding="0dp" />
+
+            <Button
+                android:id="@+id/buttonGetData"
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:text="получить данные" />
+
+        </LinearLayout>
+    </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

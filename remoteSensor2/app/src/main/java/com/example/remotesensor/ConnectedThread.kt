@@ -82,10 +82,18 @@ class ConnectedThread (mmSocket: BluetoothSocket?, myHandler: Handler) : Thread(
                             } else if(str1.equals("3021")) {
                                 sum2 += 1
                                 handler.sendMessage(handler.obtainMessage(3, "Получено $sum2"))
+                            } else if (str1.equals("3842")) {
+                                handler.sendMessage(handler.obtainMessage(9, "Отправлено время для настройки"))
+                                // При получении команды от ардуино отправляем время на ардуино для настройки
+                                sendMessage("${((Calendar.getInstance().timeInMillis)/1000)+10800}")
+                            } else if (str1.equals("8432")) {
+                                // Команда от ардуино о завершении найстройки времени
+                                handler.sendMessage(handler.obtainMessage(9, "Настройка времени завершена"))
+                                handler.sendMessageDelayed(handler.obtainMessage(1, "Ожидание команды"), 2000)
                             }
                             val str2 = stringBuilder.substring(ind + 1, stringBuilder.length)
                             Log.d("myLog", "Строка1: $str1")
-                            Log.d("myLog", "Строка1: ${Calendar.getInstance().timeInMillis}")
+                            //Log.d("myLog", "Строка1: ${Calendar.getInstance().timeInMillis}")
                             stringBuilder.delete(0, stringBuilder.length)
                             stringBuilder.append(str2)
                         }
