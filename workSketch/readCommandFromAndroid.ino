@@ -10,7 +10,7 @@ void readCommandFromAndroid() {
     if (COMMAND_NUMBER == 2812) {
       mySerial.write("3842\n");
       while (1) {
-        if (funSetTimeInRTCNew() == true) break;
+        if (funSetTimeInRTC() == true) break;
       }
       mySerial.write(time.gettime("d-m-Y, H:i:s, D"));
       mySerial.write("\n");

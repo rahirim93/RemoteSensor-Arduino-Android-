@@ -1,4 +1,4 @@
-boolean funSetTimeInRTCNew() {
+boolean funSetTimeInRTC() {
   // Очистка порта
   //while (mySerial.available()) mySerial.read();
   if (mySerial.available() > 0) {
