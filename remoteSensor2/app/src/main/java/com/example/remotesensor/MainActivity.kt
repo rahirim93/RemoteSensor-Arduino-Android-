@@ -1,6 +1,5 @@
 package com.example.remotesensor
 
-import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.BroadcastReceiver
@@ -11,56 +10,40 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.Message
-import android.util.Half.trunc
 import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import com.anychart.AnyChart
-import com.anychart.AnyChart.line
 import com.anychart.AnyChartView
-import com.anychart.chart.common.dataentry.DataEntry
-import com.anychart.chart.common.dataentry.ValueDataEntry
 import com.anychart.chart.common.listener.Event
 import com.anychart.chart.common.listener.ListenersInterface
-import com.anychart.core.Point
 import com.anychart.enums.ScaleTypes
-import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.collections.ArrayList
 
 class MainActivity : AppCompatActivity() {
-    // Переменная для хранения соединенного потока
-    private lateinit var connectedThread: ConnectedThread
-    // Переменная для хранения времени будильника
-    private lateinit var alarmTimeCalendar: Calendar
-    // TextView для отображения принятого сообщения
-    private lateinit var textView: TextView
     // TextView для выбранного времени
     private lateinit var textView2: TextView
     // Handler для передачи сообщений между потоками
-    private lateinit var handler: Handler
-    // Кнопка соединения
-    private lateinit var buttonConnect: Button
+    lateinit var handler: Handler
     // Инициализация втроенного Bluetooth устройства
     private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
     // Искомый, заранее известные, адрес устройства
     val bluetoothAddress = "98:D3:31:F9:8D:32"
     //val bluetoothAddress = "00:21:13:00:06:3B"
     //Переменная для хранения найденного устройства
-    private lateinit var myDevice: BluetoothDevice
-    var founded = false
+    private var myDevice: BluetoothDevice? = null
 
-    lateinit var connectionThread: ConnectThread
+    var founded = false // Признак того что устройство найдено. После установки true, broadcastreceiver не будет ничего делать если найдены другие устройства
 
-    private lateinit var buttonPrintLog: Button
+    var connectionThread: ConnectThread? = null
+
+    private lateinit var buttonGetData: Button
 
     private lateinit var anyChartView: AnyChartView
     private lateinit var chart: com.anychart.charts.Cartesian
-    private lateinit var buttonGetPoint: Button
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,28 +52,21 @@ class MainActivity : AppCompatActivity() {
 
         init()
 
-        //Запрос разрешений
-        requestPermissions()
-
         //Регистрация ресивера
         registerMyReceiver()
 
         bluetoothAdapter?.startDiscovery()
+    }
 
+    private fun init() {
+        initChart()
 
+        initButtons()
 
-        chart.getSelectedPoints()
+        initHandler()
 
-        buttonGetPoint = findViewById(R.id.buttonGetPoint)
-        buttonGetPoint.setOnClickListener {
-            chart.tooltip().displayMode("union")
-            //var point = chart.getSeries(1).getPoint(1)
-            //var point = Point()
-            //point.selected(true)
-            //chart.tooltip().
-            //val tooltip = chart.tooltip().
-            //chart.get
-        }
+        textView2 = findViewById(R.id.textView2)
+        textView2.textSize = 20.0f
     }
 
     private fun initChart() {
@@ -98,30 +74,20 @@ class MainActivity : AppCompatActivity() {
         anyChartView = findViewById(R.id.any_chart_view)
         chart = AnyChart.line()
 
-        ///////////////////////////////// Работает
         chart.tooltip().titleFormat("function() {\n" +
-                "return 'Время: ' " +
-                "+ Math.trunc(this.x) " +
-                "+ '.' " +
-                "+ Math.trunc((this.x - Math.trunc(this.x))*60);" +
+                "var hours = Math.trunc(this.x);\n" +
+                "var minutes = Math.trunc((this.x - hours) * 60);\n" +
+                "var seconds = Math.trunc((((this.x - hours)*60) - minutes) * 60);\n" +
+                "return 'Время: ' + hours + ':' + minutes + ':' + seconds;" +
                 "\n" +
                 "}")
-        ///////////////////////////////// Работает
-
-        ///////////////////////////////// И так работает
-//        chart.tooltip().titleFormat("function() {\n" +
-//                "var hours = Math.trunc(this.x);\n" +
-//                "return hours;" +
-//                "\n" +
-//                "}")
-        ///////////////////////////////// И так работает
 
         chart.xScale(ScaleTypes.LINEAR)
         chart.xScale("continuous")
         //chart.xScroller(true)
         //chart.yScroller(true)
         // Добавление линии нуля сетки графика
-        val zeroLine = chart.lineMarker(0).value(0).stroke("0.1 grey")
+        chart.lineMarker(0).value(0).stroke("0.1 grey")
         anyChartView.setZoomEnabled(true)
         anyChartView.setChart(chart)
 
@@ -138,33 +104,23 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     Log.d("myLog", "Исключение")
                 }
-
-                //Toast.makeText(this, a, Toast.LENGTH_SHORT)
             }
-
         })
     }
 
-    private fun init() {
-        initChart()
-
-        textView = findViewById(R.id.textView)
-        textView.textSize = 1.0f
-        textView2 = findViewById(R.id.textView2)
-        textView2.textSize = 20.0f
-
-        buttonConnect = findViewById(R.id.buttonConnect)
-        buttonConnect.isEnabled = false // Блокировка кпопки
-
-        buttonPrintLog = findViewById(R.id.buttonPrintLog)
-        buttonPrintLog.setOnClickListener {
-            //draw()
+    private fun initButtons() {
+        buttonGetData = findViewById(R.id.buttonGetData)
+        buttonGetData.setOnClickListener {
+            if (connectionThread != null) {
+                connectionThread!!.connectedThread.sendMessage("3421")
+            } else {
+                bluetoothAdapter?.startDiscovery()
+            }
         }
+    }
 
-
-
-        //Handler
-        handler = object: Handler(Looper.myLooper()!!){
+    private fun initHandler() {
+        handler = object: Handler(Looper.myLooper()!!) {
             override fun handleMessage(msg: Message) {
                 if (msg.what == 1) {
                     textView2.text = msg.obj.toString()
@@ -179,22 +135,25 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 if (msg.what == 4) {
-                    draw(connectionThread, chart)
+                    draw(connectionThread!!, chart)
                 }
-                //textView.text = "Температура: ${msg.obj} \n Влажность: "
+
+                if (msg.what == 6) {
+                    textView2.text = "Соединение разорвано"
+                }
+
+                if (msg.what == 7) {
+                    founded = false // Сбрасываем признак того что устройство найдено
+                    textView2.text = "Запущен поиск"
+                    connectionThread?.cancel() // Закрываем соединение
+                    bluetoothAdapter?.startDiscovery() // Начинаем новый поиск
+                }
+
+                if (msg.what == 8) {
+                    textView2.text = msg.obj.toString()
+                }
             }
         }
-    }
-
-
-    private fun requestPermissions() {
-        // Запрос разрешения на использование геолокации
-        ActivityCompat.requestPermissions(this,
-            arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION,
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.BLUETOOTH,
-                Manifest.permission.BLUETOOTH_ADMIN),
-            1 )
     }
 
     private fun registerMyReceiver() {
@@ -205,26 +164,29 @@ class MainActivity : AppCompatActivity() {
     //Инициализация широковещательного приемника
     private val receiver = object  : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            val action: String? = intent?.action
-            when(action) {
+            if (!founded) {
+                textView2.text = "Поиск устройства"
+            }
+            when(intent?.action) {
                 BluetoothDevice.ACTION_FOUND -> {
                     val device: BluetoothDevice? = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
                     val deviceName = device?.name
                     val deviceHardwareAddress = device?.address
                     println("Name: $deviceName. Address: $deviceHardwareAddress")
                     if (device?.address.equals(bluetoothAddress) && !founded) {
+                        bluetoothAdapter?.cancelDiscovery()
                         if (device != null) {
                             myDevice = device
-                            founded = true
-                            buttonConnect.isEnabled = true //Если найдено искомое устройство - разблокировать устройство
-                            Toast.makeText(context, "Устройство найдено", Toast.LENGTH_SHORT).show()
+                            founded = true // Устройство найдено, больше ресивер не будет ничего делать при найденных устровах
                             tryConnect()
                         }
                     }
                 }
+                BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
+                    textView2.text = "Поиск завершен"
+                }
             }
         }
-
     }
 
     //Кнопка начала поиска устройств
@@ -232,18 +194,11 @@ class MainActivity : AppCompatActivity() {
         bluetoothAdapter?.startDiscovery()
     }
 
-    //Кнопка запуска соединения
-    fun connect(view: android.view.View) {
-        //Создать поток соединения и запускить
-        tryConnect()
-    }
-
     //Создать поток соединения и запускить
     private fun tryConnect() {
         if (myDevice != null) {
-            connectionThread = ConnectThread(myDevice, handler, this)
-            connectionThread.start()
-            Toast.makeText(this, "Попытка соединения", Toast.LENGTH_SHORT).show()
+            connectionThread = ConnectThread(myDevice!!, handler, this)
+            connectionThread!!.start()
         } else {
             Toast.makeText(this, "Device = null", Toast.LENGTH_SHORT).show()
         }
@@ -255,11 +210,7 @@ class MainActivity : AppCompatActivity() {
         unregisterReceiver(receiver)
     }
 
-    fun sendMessage(view: View) {
-        //connectionThread.connectedThread.sendMessage("1563")
-        //setTime()
-    }
-    fun setTime() {
+    private fun setTime() {
         // Нужно отрпавить текущее время
         val calendar = Calendar.getInstance()
         val year = calendar.get(Calendar.YEAR)
@@ -268,33 +219,16 @@ class MainActivity : AppCompatActivity() {
         val hours = calendar.get(Calendar.HOUR_OF_DAY)
         val minutes = calendar.get(Calendar.MINUTE)
         val seconds = calendar.get(Calendar.SECOND)
-        val sdf = SimpleDateFormat("Ddd.MM.yyyy", Locale.getDefault())
+        //val sdf = SimpleDateFormat("Ddd.MM.yyyy", Locale.getDefault())
         //var a = sdf.format(calendar.time)
-        connectionThread
-            .connectedThread
-            .sendMessage("${year}Y${month}M${day}D${hours}H${minutes}m${seconds}S")
+        connectionThread?.connectedThread?.sendMessage("${year}Y${month}M${day}D${hours}H${minutes}m${seconds}S")
     }
 
     fun buttonOn(view: View) {
-        connectionThread.connectedThread.sendMessage("2812")
+        connectionThread?.connectedThread?.sendMessage("2812")
     }
 
     fun buttonSendTime(view: View) {
         setTime()
-    }
-
-    fun buttonGetData(view: View) {
-        connectionThread.connectedThread.sendMessage("3421")
-    }
-
-    fun buttonNameFile(view: View) {
-        sendDate()
-    }
-
-    fun sendDate() {
-        val calendar = Calendar.getInstance()
-        val sdf = SimpleDateFormat("ddMMyyyy", Locale.getDefault())
-        Log.d("myLog", sdf.format(calendar.time))
-        connectionThread.connectedThread.sendMessage(sdf.format(calendar.time))
     }
 }

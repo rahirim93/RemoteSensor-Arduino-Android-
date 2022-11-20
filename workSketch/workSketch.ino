@@ -28,7 +28,7 @@ File root2;
 File myFile;
 // Для работы с SD
 
-boolean isWrite = true;
+boolean isWrite = true;  // Флаг для хранения состояния вкл.\выкл. запись ТМИ
 
 void setup() {
   // Найстройка датчика DHT11
@@ -40,29 +40,19 @@ void setup() {
   mySerial.begin(9600);
   Serial.begin(9600);
   initCard();
-  //String time111(time.gettimeUnix());
-  //Serial.println(time111);
 }
 
 void loop() {
-  readCommandFromAndroid();
 
-  readCommand();
+  readCommandFromAndroid();  // Прием команд от телефона
 
-  // Старый счетчик привязанный к счетчику платы ардуино
-  //  if (isWrite) {
-  //    if (millis() - counter > 300000) {
-  //      counter = millis();
-  //      test2222();
-  //    }
-  //  }
+  readCommand();  // Прием команд с монитора порта
 
-  // Новый счетчик привязанный к модулю времени
-  //if (millis() - counter > 1000) {
+  // Если запись ТМИ включана то пишем на карту
   if (isWrite) {
+    // Новый счетчик привязанный к модулю времени
     sdCounter();
   }
-  //}
 }
 
 // Создание файла и запись ТМИ
@@ -77,84 +67,6 @@ void writeDataToSD() {
     myFile.close();
   }
 }
-
-// Счетчик привязанный к модулю времени
-void sdCounter() {
-  // При первом запуске, когда файла еще нет.
-  // Существует ли файл
-  // Если не существует, то создаем и записываем текущее время в секундах с Unix
-  if (!SD.exists("pref.txt")) {
-    myFile = SD.open("pref.txt", FILE_WRITE);  // Open
-    String b(time.gettimeUnix());
-    myFile.print(b);
-    myFile.close();  // Close
-  }
-
-  // Если файл уже существует
-  // То считать время из файла
-  myFile = SD.open("pref.txt");  // Open
-  String str = "";
-  while (myFile.available()) {
-    str.concat(myFile.readString());
-  }
-  myFile.close();  // Закрываем для чтения
-
-
-  // Если прошел заданный промежуток времени
-  if (time.gettimeUnix() - str.toInt() > 300) {
-    mySerial.write("3021\n");
-    writeDataToSD();                           // Записываем ТМИ
-    SD.remove("pref.txt");                     // Удаляем
-    myFile = SD.open("pref.txt", FILE_WRITE);  // Создаем новый
-    String b(time.gettimeUnix());              // Считываем новое время
-    myFile.print(b);                           // Записываем новое время
-    myFile.close();                            // Закрываем
-  }
-  //myFile.close();
-
-
-
-  // Рабочая версия///////////////////
-  // if (millis() - counter1 > 1000) {
-  //   String str = "";
-  //   counter1 = millis();
-  //   myFile = SD.open("pref.txt");
-  //   while (myFile.available()) {
-  //     str.concat(myFile.readString());
-  //   }
-  //   long j = str.toInt();          // Время считанное с SD в секундах
-  //   long j1 = time.gettimeUnix();  // Время текущее в секундах с Unix
-  //   Serial.println(j);
-  //   Serial.println(j1);
-  //   Serial.println(j1 - j);
-  //   myFile.close();
-  /////////////////////
-  // counter1 = millis();
-  // myFile = SD.open("pref.txt");
-  // long j = long(myFile.read());
-  // long j1 = time.gettimeUnix();
-  // Serial.println(j);
-  // Serial.println(j1);
-  // Serial.println(j1 - j);
-  // myFile.close();
-}
-
-
-// myFile = SD.open("pref.txt");
-// if (myFile) {
-//   if (myFile.available() == 0) {
-//     myFile.close();
-//     myFile = SD.open("pref.txt", FILE_WRITE);
-//     String b(time.gettimeUnix());
-//     myFile.print(b);
-//     myFile.close();
-//   }
-
-// myFile = SD.open("pref.txt", FILE_WRITE);
-// while (myFile.available()) {
-//   Serial.println(myFile.read());
-// }
-// myFile.close();
 
 
 
@@ -187,6 +99,7 @@ String stringOfData() {
   return curentTime;
 }
 
+// Вспомогательная для вывода списка файлов
 void printDirectory(File dir, int numTabs) {
   while (true) {
     File entry = dir.openNextFile();
@@ -222,6 +135,7 @@ void listCommands() {
   Serial.println(F("8 - Включить/выключить режим записи"));
 }
 
+// Инициализация карты SD
 void initCard() {
   Serial.print(F("Initializing SD card..."));
   if (!SD.begin(4)) {

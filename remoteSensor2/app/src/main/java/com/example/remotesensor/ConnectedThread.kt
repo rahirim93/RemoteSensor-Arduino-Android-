@@ -8,7 +8,6 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.*
-import com.example.remotesensor.MainActivity
 
 
 class ConnectedThread (mmSocket: BluetoothSocket?, myHandler: Handler) : Thread() {
@@ -22,12 +21,24 @@ class ConnectedThread (mmSocket: BluetoothSocket?, myHandler: Handler) : Thread(
 
 
     override fun run() {
+            val counterOf = Calendar.getInstance().timeInMillis
             val stringBuilder = StringBuilder()
             var mode = 1231
             // 3212 - прием тми
             // 1231 - считывание команд
             // Keep listening to the InputStream until an exception occurs.
             while (true) {
+                /** Понять что соединине разорвано можно только отправив сообщение на другую сторону.
+                 * В случае возникновения ошибки отправки, функция выбрасывает исключение, по которому
+                 мы понимаем что соединение разоравно.
+                 Поэтому периодически отправляем пустое сообщение, для проверки возможности отправки
+                 Если передача неуспешна, то программа переходит к блоку исключения функции write
+                * @see sendMessage */
+                if (Calendar.getInstance().timeInMillis - counterOf > 100) {
+                    sendMessage("")
+                }
+
+
                 // Read from the InputStream.
                 // Режим считывания команд
                 if (mode == 1231) {
@@ -70,7 +81,7 @@ class ConnectedThread (mmSocket: BluetoothSocket?, myHandler: Handler) : Thread(
                                 counter = true
                             } else if(str1.equals("3021")) {
                                 sum2 += 1
-                                handler.sendMessage(handler.obtainMessage(3, "Получено ${sum2}"))
+                                handler.sendMessage(handler.obtainMessage(3, "Получено $sum2"))
                             }
                             val str2 = stringBuilder.substring(ind + 1, stringBuilder.length)
                             Log.d("myLog", "Строка1: $str1")
@@ -201,6 +212,7 @@ class ConnectedThread (mmSocket: BluetoothSocket?, myHandler: Handler) : Thread(
                                 stringBuilder.append(str2)                                          // Добавляем остаток для дальнейшей обработки
                             }
                         } catch (e: IOException) {
+                            handler.sendMessage(handler.obtainMessage(6))
                             Log.d("MyLog", "Input stream was disconnected", e)
                             break
                         }
@@ -214,7 +226,10 @@ class ConnectedThread (mmSocket: BluetoothSocket?, myHandler: Handler) : Thread(
             val messageBuffer = message.toByteArray()
             mmOutStream?.write(messageBuffer)
         } catch (e: Exception) {
-
+            /** Если отправка вызывает блок исключения, значит соединения разорвано и программа
+             * уведомлет об этом handler
+             * @see MainActivity.handler */
+            handler.sendMessage(handler.obtainMessage(7))
         }
     }
     }
