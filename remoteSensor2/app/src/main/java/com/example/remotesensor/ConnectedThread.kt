@@ -90,6 +90,8 @@ class ConnectedThread (mmSocket: BluetoothSocket?, myHandler: Handler) : Thread(
                                 // Команда от ардуино о завершении найстройки времени
                                 handler.sendMessage(handler.obtainMessage(9, "Настройка времени завершена"))
                                 handler.sendMessageDelayed(handler.obtainMessage(1, "Ожидание команды"), 2000)
+                            } else if (str1.equals("9432")) {
+                                handler.sendMessageDelayed(handler.obtainMessage(1, "Ошибка инициализации SD"), 1000)
                             }
                             val str2 = stringBuilder.substring(ind + 1, stringBuilder.length)
                             Log.d("myLog", "Строка1: $str1")

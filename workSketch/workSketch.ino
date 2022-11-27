@@ -137,11 +137,17 @@ void listCommands() {
 
 // Инициализация карты SD
 void initCard() {
+  long counterThis = 0;
   Serial.print(F("Initializing SD card..."));
   if (!SD.begin(4)) {
     Serial.println(F("initialization failed!"));
-    while (1)
-      ;
+    while (1) {
+      // Раз в секунлу отправляем сообщение об ошибке
+      if (millis() - counterThis > 1000) {
+        counterThis = millis();
+        mySerial.write("9432\n");
+      }
+    }
   }
   Serial.println(F("initialization done."));
 }
