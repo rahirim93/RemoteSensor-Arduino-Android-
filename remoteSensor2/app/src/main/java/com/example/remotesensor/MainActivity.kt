@@ -121,7 +121,7 @@ class MainActivity : AppCompatActivity() {
         buttonDiscovery.setOnClickListener {
             bluetoothAdapter?.startDiscovery()
         }
-
+            //
         buttonGetData = findViewById(R.id.buttonGetData)
         buttonGetData.setOnClickListener {
             if (connectionThread != null) {
