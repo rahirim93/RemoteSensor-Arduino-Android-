@@ -10,6 +10,9 @@ import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 
+// Команды полученные от ардуино
+const val ARDUINO_SENDING_DATA = "4532"
+const val ARDUINO_SETTING_TIME = "3842"
 
 class ConnectedThread (mmSocket: BluetoothSocket?, myHandler: Handler) : Thread() {
         private val mmInStream: InputStream? = mmSocket?.inputStream
@@ -18,6 +21,7 @@ class ConnectedThread (mmSocket: BluetoothSocket?, myHandler: Handler) : Thread(
         var list = ArrayList<String>()
         private var handler = myHandler
         var sum2 = 0
+        var dateRequestData = Calendar.getInstance()
 
 
 
@@ -78,13 +82,13 @@ class ConnectedThread (mmSocket: BluetoothSocket?, myHandler: Handler) : Thread(
                             if (str1.equals("3212")) {
                                 mode = str1.toInt()
                                 counter = true
-                            } else if(str1.equals("4532")) {
+                            } else if(str1.equals(ARDUINO_SENDING_DATA)) {
                                 mode = str1.toInt()
                                 counter = true
                             } else if(str1.equals("3021")) {
                                 sum2 += 1
                                 handler.sendMessage(handler.obtainMessage(3, "Получено $sum2"))
-                            } else if (str1.equals("3842")) {
+                            } else if (str1.equals(ARDUINO_SETTING_TIME)) {
                                 handler.sendMessage(handler.obtainMessage(9, "Отправлено время для настройки"))
                                 // При получении команды от ардуино отправляем время на ардуино для настройки
                                 sendMessage("${((Calendar.getInstance().timeInMillis)/1000)+10800}")
@@ -97,6 +101,7 @@ class ConnectedThread (mmSocket: BluetoothSocket?, myHandler: Handler) : Thread(
                             }
                             val str2 = stringBuilder.substring(ind + 1, stringBuilder.length)
                             Log.d("myLog", "Строка1: $str1")
+                            handler.sendMessageDelayed(handler.obtainMessage(9, str1), 6000)
                             //Log.d("myLog", "Строка1: ${Calendar.getInstance().timeInMillis}")
                             stringBuilder.delete(0, stringBuilder.length)
                             stringBuilder.append(str2)
@@ -167,10 +172,10 @@ class ConnectedThread (mmSocket: BluetoothSocket?, myHandler: Handler) : Thread(
                     // Выполняется один раз при срабатывании команды
                     if (counter) {
                         // Отправка имени файла для сброса
-                        val calendar = Calendar.getInstance()
+                        //val calendar = Calendar.getInstance()
                         val sdf = SimpleDateFormat("ddMMyyyy", Locale.getDefault())
-                        Log.d("myLog", sdf.format(calendar.time))
-                        sendMessage(sdf.format(calendar.time))
+                        Log.d("myLog", sdf.format(dateRequestData.time))
+                        sendMessage(sdf.format(dateRequestData.time))
 
                         handler.sendMessage(handler.obtainMessage(1, "Ожидание передачи"))
                         Log.d("myLog", "Режим сброса данных: $mode")
@@ -186,7 +191,6 @@ class ConnectedThread (mmSocket: BluetoothSocket?, myHandler: Handler) : Thread(
                             Log.d("MyLog", "Input stream was disconnected", e)
                             break
                         }
-                        log("Working")
                         /** Работа алгоритма следующая:
                          *      1. Алгоритм считывает какие-то байты. Переводит их в строку. Строку добавляет в стрингдилдер.
                          *

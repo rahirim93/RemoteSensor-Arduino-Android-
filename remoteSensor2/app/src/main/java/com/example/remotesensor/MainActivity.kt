@@ -7,7 +7,6 @@ import android.os.Handler
 import android.os.Looper
 import android.os.Message
 import android.util.Log
-import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
@@ -17,10 +16,16 @@ import com.anychart.AnyChartView
 import com.anychart.chart.common.listener.Event
 import com.anychart.chart.common.listener.ListenersInterface
 import com.anychart.enums.ScaleTypes
+import com.google.android.material.datepicker.MaterialDatePicker
+import java.text.SimpleDateFormat
+import java.util.*
 
 const val CONNECTING_SUCCESSFUL = 10
 const val CONNECTING_TRY = 11
 const val CONNECTING_FAILED = 12
+
+const val COMMAND_GET_DATA = "3421"
+const val COMMAND_SYNC_TIME = "2812"
 
 
 class MainActivity : AppCompatActivity() {
@@ -50,6 +55,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var anyChartView: AnyChartView
     private lateinit var chart: com.anychart.charts.Cartesian
 
+    // DatePicker для выбора даты для запроса данных
+    private lateinit var datePicker: MaterialDatePicker<Long>
+
+    // Переменная для хранения даты запроса данных (по умолчания сегодняшняя дата)
+    var dateRequestData = Calendar.getInstance()
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -73,6 +85,8 @@ class MainActivity : AppCompatActivity() {
 
         textView2 = findViewById(R.id.textView2)
         textView2.textSize = 20.0f
+
+        initDatePicker()
     }
 
     private fun initChart() {
@@ -123,17 +137,20 @@ class MainActivity : AppCompatActivity() {
 
         buttonSyncTime = findViewById(R.id.buttonSyncTime)
         buttonSyncTime.setOnClickListener {
-            //connectionThread?.connectedThread?.sendMessage("2812")
+            bluetoothHelper.sendCommand(COMMAND_SYNC_TIME)
         }
 
         buttonGetData = findViewById(R.id.buttonGetData)
         buttonGetData.setOnClickListener {
-            bluetoothHelper.getData()
+            bluetoothHelper.sendCommand(COMMAND_GET_DATA)
         }
 
         buttonTest1 = findViewById(R.id.buttonTest1)
+        val calendar = Calendar.getInstance()
+        val sdf = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+        buttonTest1.text = sdf.format(calendar.time)
         buttonTest1.setOnClickListener {
-
+            datePicker.show(supportFragmentManager, "datePicker")
         }
 
         buttonTest2 = findViewById(R.id.buttonTest2)
@@ -217,5 +234,19 @@ class MainActivity : AppCompatActivity() {
     override fun onBackPressed() {
         super.onBackPressed()
         finishAffinity()
+    }
+
+    private fun initDatePicker() {
+        datePicker = MaterialDatePicker.Builder.datePicker().setTitleText("Выберете дату").build()
+        datePicker.addOnPositiveButtonClickListener {
+            val calendar = Calendar.getInstance()
+            calendar.timeInMillis = datePicker.selection!!
+
+            val sdf = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+            buttonTest1.text = sdf.format(calendar.time)
+
+            bluetoothHelper.connectThread?.connectedThread!!.dateRequestData = calendar
+            bluetoothHelper.sendCommand(COMMAND_GET_DATA)
+        }
     }
 }

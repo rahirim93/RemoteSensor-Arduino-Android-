@@ -22,11 +22,11 @@ class BluetoothHelper(var context: Context,
 
     }
 
-    fun getData() {
+    fun sendCommand(command: String) {
         if (connectThread != null) {
             if(connectThread?.connectedThread != null) {
                 if (connectThread?.connectedThread?.isAlive == true) {
-                    connectThread!!.connectedThread?.sendMessage("3421")
+                    connectThread!!.connectedThread?.sendMessage(command)
                 } else {
                     connect()
                 }
