@@ -3,6 +3,7 @@ package com.example.remotesensor
 import android.bluetooth.BluetoothSocket
 import android.os.Handler
 import android.util.Log
+import android.widget.Toast
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
@@ -27,7 +28,7 @@ class ConnectedThread (mmSocket: BluetoothSocket?, myHandler: Handler) : Thread(
             // 3212 - прием тми
             // 1231 - считывание команд
             // Keep listening to the InputStream until an exception occurs.
-            while (true) {
+            while (!isInterrupted) {
                 /** Понять что соединине разорвано можно только отправив сообщение на другую сторону.
                  * В случае возникновения ошибки отправки, функция выбрасывает исключение, по которому
                  мы понимаем что соединение разоравно.
@@ -50,6 +51,7 @@ class ConnectedThread (mmSocket: BluetoothSocket?, myHandler: Handler) : Thread(
                         list.forEach {
                             Log.d("myLog", it)
                         }
+                        stringBuilder.delete(0, stringBuilder.length)
                     }
                     try {
                         var bytes = mmInStream!!.available()
@@ -99,8 +101,10 @@ class ConnectedThread (mmSocket: BluetoothSocket?, myHandler: Handler) : Thread(
                             stringBuilder.delete(0, stringBuilder.length)
                             stringBuilder.append(str2)
                         }
-                    } catch (e: IOException) {
+                    } catch (e: Exception) {
+                        handler.sendMessage(handler.obtainMessage(6))
                         Log.d("MyLog", "Input stream was disconnected", e)
+                        cancel()
                         break
                     }
                 }
@@ -145,6 +149,7 @@ class ConnectedThread (mmSocket: BluetoothSocket?, myHandler: Handler) : Thread(
                                 Log.d("myLog", "Строка2: $str2")
                             }
                         } catch (e: IOException) {
+                            cancel()
                             Log.d("MyLog", "Input stream was disconnected", e)
                             break
                         }
@@ -223,6 +228,7 @@ class ConnectedThread (mmSocket: BluetoothSocket?, myHandler: Handler) : Thread(
                             }
                         } catch (e: IOException) {
                             handler.sendMessage(handler.obtainMessage(6))
+                            cancel()
                             Log.d("MyLog", "Input stream was disconnected", e)
                             break
                         }
@@ -240,6 +246,12 @@ class ConnectedThread (mmSocket: BluetoothSocket?, myHandler: Handler) : Thread(
              * уведомлет об этом handler
              * @see MainActivity.handler */
             handler.sendMessage(handler.obtainMessage(7))
+            cancel()
         }
     }
+
+    private fun cancel() {
+        mmOutStream?.close()
+        mmInStream?.close()
     }
+}

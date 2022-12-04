@@ -10,8 +10,8 @@ fun draw(connectionThread: ConnectThread, chart: com.anychart.charts.Cartesian) 
     chart.removeAllSeries()
     val dataHumidity = arrayListOf<DataEntry>()
     val dataTemperature = arrayListOf<DataEntry>()
-    val list = connectionThread.connectedThread.list
-    if (list.size > 0) {
+    val list = connectionThread.connectedThread?.list
+    if (list!!.size > 0) {
         list.take(list.size - 0).forEach {
             val stringBuilder2 = StringBuilder()
             stringBuilder2.append(it)
@@ -43,5 +43,9 @@ fun sendDate(connectionThread: ConnectThread) {
     val calendar = Calendar.getInstance()
     val sdf = SimpleDateFormat("ddMMyyyy", Locale.getDefault())
     Log.d("myLog", sdf.format(calendar.time))
-    connectionThread.connectedThread.sendMessage(sdf.format(calendar.time))
+    connectionThread.connectedThread?.sendMessage(sdf.format(calendar.time))
+}
+
+fun log (string: String) {
+    Log.d("myLog", string)
 }

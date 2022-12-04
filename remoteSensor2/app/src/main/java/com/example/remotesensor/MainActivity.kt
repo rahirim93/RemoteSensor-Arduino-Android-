@@ -2,10 +2,6 @@ package com.example.remotesensor
 
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -21,7 +17,6 @@ import com.anychart.AnyChartView
 import com.anychart.chart.common.listener.Event
 import com.anychart.chart.common.listener.ListenersInterface
 import com.anychart.enums.ScaleTypes
-import java.util.*
 
 class MainActivity : AppCompatActivity() {
     // TextView для выбранного времени
@@ -43,6 +38,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var buttonGetData: Button
     private lateinit var buttonSyncTime: Button
     private lateinit var buttonDiscovery: Button
+    private lateinit var buttonTest2: Button
+
 
 
     private lateinit var anyChartView: AnyChartView
@@ -55,10 +52,9 @@ class MainActivity : AppCompatActivity() {
 
         init()
 
-        //Регистрация ресивера
-        registerMyReceiver()
+        myDevice = bluetoothAdapter?.getRemoteDevice(bluetoothAddress)
 
-        bluetoothAdapter?.startDiscovery()
+        tryConnect()
     }
 
     private fun init() {
@@ -119,16 +115,29 @@ class MainActivity : AppCompatActivity() {
 
         buttonDiscovery = findViewById(R.id.buttonDiscovery)
         buttonDiscovery.setOnClickListener {
-            bluetoothAdapter?.startDiscovery()
+            tryConnect()
         }
-            //
+
         buttonGetData = findViewById(R.id.buttonGetData)
         buttonGetData.setOnClickListener {
             if (connectionThread != null) {
-                connectionThread!!.connectedThread.sendMessage("3421")
+                if(connectionThread?.connectedThread != null) {
+                    if (connectionThread?.connectedThread?.isAlive == true) {
+                        connectionThread!!.connectedThread?.sendMessage("3421")
+                    } else {
+                        tryConnect()
+                    }
+                } else {
+                    tryConnect()
+                }
             } else {
-                bluetoothAdapter?.startDiscovery()
+                tryConnect()
             }
+        }
+
+        buttonTest2 = findViewById(R.id.buttonTest2)
+        buttonTest2.setOnClickListener {
+            //connectionThread?.connectedThread?.start()
         }
     }
 
@@ -152,18 +161,22 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 if (msg.what == 6) {
-                    textView2.text = "Соединение разорвано"
+                    textView2.text = "Соединение разорвано ${msg.what}"
+                    connectionThread?.connectedThread?.interrupt()
+                    connectionThread?.cancel()
+                    tryConnect()
                 }
 
                 if (msg.what == 7) {
-                    founded = false // Сбрасываем признак того что устройство найдено
-                    textView2.text = "Запущен поиск"
-                    connectionThread?.cancel() // Закрываем соединение
-                    bluetoothAdapter?.startDiscovery() // Начинаем новый поиск
+                    textView2.text = "Соединение разорвано ${msg.what}"
+                    connectionThread?.connectedThread?.interrupt()
+                    connectionThread?.cancel()
+                    //tryConnect()
                 }
 
                 if (msg.what == 8) {
                     textView2.text = msg.obj.toString()
+                    //tryConnect()
                 }
 
                 if (msg.what == 9) {
@@ -173,42 +186,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun registerMyReceiver() {
-        val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
-        registerReceiver(receiver, filter)
-    }
-
-    //Инициализация широковещательного приемника
-    private val receiver = object  : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (!founded) {
-                textView2.text = "Поиск устройства"
-            }
-            when(intent?.action) {
-                BluetoothDevice.ACTION_FOUND -> {
-                    val device: BluetoothDevice? = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
-                    val deviceName = device?.name
-                    val deviceHardwareAddress = device?.address
-                    println("Name: $deviceName. Address: $deviceHardwareAddress")
-                    if (device?.address.equals(bluetoothAddress) && !founded) {
-                        bluetoothAdapter?.cancelDiscovery()
-                        if (device != null) {
-                            myDevice = device
-                            founded = true // Устройство найдено, больше ресивер не будет ничего делать при найденных устровах
-                            tryConnect()
-                        }
-                    }
-                }
-                BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
-                    textView2.text = "Поиск завершен"
-                }
-            }
-        }
-    }
+    /**
+     * Попробовть просто в онрезме проверять живы ли ветви и есть нет то возобновлять
+     */
 
     //Создать поток соединения и запускить
     private fun tryConnect() {
         if (myDevice != null) {
+            if (connectionThread != null) {
+                if (connectionThread!!.isAlive) {
+                    connectionThread = null
+                }
+            }
             connectionThread = ConnectThread(myDevice!!, handler, this)
             connectionThread!!.start()
         } else {
@@ -216,9 +205,24 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun interr(view: View) {
+        connectionThread?.connectedThread?.interrupt()
+        //finishAffinity()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
-        //Отказ от регистрации приемника при закрытии приложения
-        unregisterReceiver(receiver)
+        connectionThread?.cancel()
+        connectionThread?.connectedThread?.interrupt()
+        connectionThread = null
+    }
+
+    override fun onBackPressed() {
+        super.onBackPressed()
+        finishAffinity()
+    }
+
+    override fun onResume() {
+        super.onResume()
     }
 }
