@@ -14,7 +14,7 @@ class ConnectThread (device: BluetoothDevice, handler: Handler, var context: Con
     private val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
     var myHandler = handler
     var connectedThread: ConnectedThread? = null
-     val mmSocket: BluetoothSocket? by lazy(LazyThreadSafetyMode.NONE) {
+     private val mmSocket: BluetoothSocket? by lazy(LazyThreadSafetyMode.NONE) {
         device.createRfcommSocketToServiceRecord(myUUID)
     }
 
@@ -26,22 +26,23 @@ class ConnectThread (device: BluetoothDevice, handler: Handler, var context: Con
         try {
             // Connect to the remote device through the socket. This call blocks
             // until it succeeds or throws an exception.
-            myHandler.sendMessageDelayed(myHandler.obtainMessage(8, "Попытка соединения"), 500)
+            myHandler.sendMessageDelayed(myHandler.obtainMessage(CONNECTING_TRY, "Попытка соединения"), 500)
             val startConnect = Calendar.getInstance().timeInMillis
             mmSocket?.connect()
             val endConnect = Calendar.getInstance().timeInMillis
-            val timeOfConntcting = (endConnect - startConnect) / 1000
-            log("Время соединения: $timeOfConntcting сек")
-            myHandler.sendMessageDelayed(myHandler.obtainMessage(8, "Соединение успешно"), 500)
+            val timeOfConnecting = (endConnect - startConnect) / 1000
+            log("Время соединения: $timeOfConnecting сек")
+            myHandler.sendMessageDelayed(myHandler.obtainMessage(CONNECTING_SUCCESSFUL, "Соединение успешно"), 500)
             // The connection attempt succeeded. Perform work associated with
             // the connection in a separate thread.
             connectedThread = ConnectedThread(mmSocket, myHandler)
-            connectedThread!!.name = "BlueThread"
+            connectedThread!!.name = "BlueConnectedThread"
             connectedThread!!.start()
 
 
         } catch (e: Exception) {
-            myHandler.sendMessageDelayed(myHandler.obtainMessage(8, "Попытка соединения не удалась"), 5000)
+            cancel()
+            myHandler.sendMessageDelayed(myHandler.obtainMessage(CONNECTING_FAILED, "Попытка соединения не удалась"), 500)
         }
     }
 
@@ -52,6 +53,4 @@ class ConnectThread (device: BluetoothDevice, handler: Handler, var context: Con
         } catch (e: IOException) {
         }
     }
-
-
 }

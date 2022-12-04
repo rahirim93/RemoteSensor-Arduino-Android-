@@ -46,11 +46,12 @@
             android:orientation="horizontal">
 
             <Button
-                android:id="@+id/buttonDiscovery"
+                android:id="@+id/buttonConnect"
                 android:layout_weight="1"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
-                android:text="Поиск" />
+                android:textSize="10sp"
+                android:text="Соединение" />
 
 
             <Button
@@ -71,31 +72,28 @@
 
         </LinearLayout>
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
 
             <Button
+                android:id="@+id/buttonTest1"
                 android:layout_weight="1"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:text="inter"
-                android:onClick="interr"/>
+                android:layout_height="match_parent"/>
 
 
             <Button
                 android:id="@+id/buttonTest2"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:text="start"
-                android:textSize="8sp" />
+                android:layout_width="0dp"
+                android:layout_height="match_parent"/>
 
             <Button
+                android:id="@+id/buttonTest3"
                 android:layout_weight="1"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:text="получить данные" />
+                android:layout_height="match_parent"/>
 
         </LinearLayout>
     </LinearLayout>

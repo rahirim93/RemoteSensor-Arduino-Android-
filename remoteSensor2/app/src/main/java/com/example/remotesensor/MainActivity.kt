@@ -18,33 +18,37 @@ import com.anychart.chart.common.listener.Event
 import com.anychart.chart.common.listener.ListenersInterface
 import com.anychart.enums.ScaleTypes
 
+const val CONNECTING_SUCCESSFUL = 10
+const val CONNECTING_TRY = 11
+const val CONNECTING_FAILED = 12
+
+
 class MainActivity : AppCompatActivity() {
+    // Все, что касается Bluetooth
+    private val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter() // Инициализация втроенного Bluetooth устройства
+    private val bluetoothAddress = "98:D3:31:F9:8D:32" // Искомый, заранее известные, адрес устройства
+    //val bluetoothAddress = "00:21:13:00:06:3B" // Искомый, заранее известные, адрес устройства
+    private var myDevice: BluetoothDevice? = null //Переменная для хранения найденного устройства
+    private lateinit var bluetoothHelper: BluetoothHelper // Переменная класса BluetoothHelper
+    private var counterConnecting = 0 // Счетчик для подсчета количества попыток соединений
+
     // TextView для выбранного времени
     private lateinit var textView2: TextView
+
     // Handler для передачи сообщений между потоками
     lateinit var handler: Handler
-    // Инициализация втроенного Bluetooth устройства
-    private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
-    // Искомый, заранее известные, адрес устройства
-    val bluetoothAddress = "98:D3:31:F9:8D:32"
-    //val bluetoothAddress = "00:21:13:00:06:3B"
-    //Переменная для хранения найденного устройства
-    private var myDevice: BluetoothDevice? = null
 
-    var founded = false // Признак того что устройство найдено. После установки true, broadcastreceiver не будет ничего делать если найдены другие устройства
-
-    var connectionThread: ConnectThread? = null
-
+    // Кнопки
     private lateinit var buttonGetData: Button
     private lateinit var buttonSyncTime: Button
-    private lateinit var buttonDiscovery: Button
+    private lateinit var buttonConnect: Button
+    private lateinit var buttonTest1: Button
     private lateinit var buttonTest2: Button
+    private lateinit var buttonTest3: Button
 
-
-
+    // График
     private lateinit var anyChartView: AnyChartView
     private lateinit var chart: com.anychart.charts.Cartesian
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,7 +58,10 @@ class MainActivity : AppCompatActivity() {
 
         myDevice = bluetoothAdapter?.getRemoteDevice(bluetoothAddress)
 
-        tryConnect()
+
+        bluetoothHelper = BluetoothHelper(this, handler)
+
+        bluetoothHelper.connect()
     }
 
     private fun init() {
@@ -108,36 +115,35 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initButtons() {
-        buttonSyncTime = findViewById(R.id.buttonSyncTime)
-        buttonSyncTime.setOnClickListener {
-            connectionThread?.connectedThread?.sendMessage("2812")
+        buttonConnect = findViewById(R.id.buttonConnect)
+        buttonConnect.setOnClickListener {
+            counterConnecting = 0 // Сброс счетчика попыток соединений
+            bluetoothHelper.connect()
         }
 
-        buttonDiscovery = findViewById(R.id.buttonDiscovery)
-        buttonDiscovery.setOnClickListener {
-            tryConnect()
+        buttonSyncTime = findViewById(R.id.buttonSyncTime)
+        buttonSyncTime.setOnClickListener {
+            //connectionThread?.connectedThread?.sendMessage("2812")
         }
 
         buttonGetData = findViewById(R.id.buttonGetData)
         buttonGetData.setOnClickListener {
-            if (connectionThread != null) {
-                if(connectionThread?.connectedThread != null) {
-                    if (connectionThread?.connectedThread?.isAlive == true) {
-                        connectionThread!!.connectedThread?.sendMessage("3421")
-                    } else {
-                        tryConnect()
-                    }
-                } else {
-                    tryConnect()
-                }
-            } else {
-                tryConnect()
-            }
+            bluetoothHelper.getData()
+        }
+
+        buttonTest1 = findViewById(R.id.buttonTest1)
+        buttonTest1.setOnClickListener {
+
         }
 
         buttonTest2 = findViewById(R.id.buttonTest2)
         buttonTest2.setOnClickListener {
-            //connectionThread?.connectedThread?.start()
+
+        }
+
+        buttonTest3 = findViewById(R.id.buttonTest3)
+        buttonTest3.setOnClickListener {
+
         }
     }
 
@@ -157,72 +163,59 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 if (msg.what == 4) {
-                    draw(connectionThread!!, chart)
+                    draw(bluetoothHelper.connectThread!!, chart)
                 }
 
                 if (msg.what == 6) {
                     textView2.text = "Соединение разорвано ${msg.what}"
-                    connectionThread?.connectedThread?.interrupt()
-                    connectionThread?.cancel()
-                    tryConnect()
+                    bluetoothHelper.connectThread?.connectedThread?.interrupt()
+                    //connectionThread?.cancel()
+                    bluetoothHelper.connect()
                 }
 
                 if (msg.what == 7) {
                     textView2.text = "Соединение разорвано ${msg.what}"
-                    connectionThread?.connectedThread?.interrupt()
-                    connectionThread?.cancel()
-                    //tryConnect()
-                }
-
-                if (msg.what == 8) {
-                    textView2.text = msg.obj.toString()
+                    //connectionThread?.connectedThread?.interrupt()
+                    //connectionThread?.cancel()
                     //tryConnect()
                 }
 
                 if (msg.what == 9) {
                     textView2.text = msg.obj.toString()
                 }
-            }
-        }
-    }
 
-    /**
-     * Попробовть просто в онрезме проверять живы ли ветви и есть нет то возобновлять
-     */
+                if (msg.what == CONNECTING_TRY) {
+                    textView2.text = msg.obj.toString()
+                }
 
-    //Создать поток соединения и запускить
-    private fun tryConnect() {
-        if (myDevice != null) {
-            if (connectionThread != null) {
-                if (connectionThread!!.isAlive) {
-                    connectionThread = null
+                if (msg.what == CONNECTING_SUCCESSFUL) {
+                    textView2.text = msg.obj.toString()
+                }
+
+                if (msg.what == CONNECTING_FAILED) {
+                    // Счетчик попыток соединений
+                    counterConnecting += 1
+                    if (counterConnecting > 5) { // Если было совершено более 5 попыток, то подключение не возобновляем
+                        textView2.text = "Нажмите кнопку соединение"
+                    } else {
+                        textView2.text = msg.obj.toString()
+                        val restartConnectionThread = RestartConnectionThread(bluetoothHelper)
+                        restartConnectionThread.name = "BlueRestart"
+                        restartConnectionThread.start()
+                    }
                 }
             }
-            connectionThread = ConnectThread(myDevice!!, handler, this)
-            connectionThread!!.start()
-        } else {
-            Toast.makeText(this, "Device = null", Toast.LENGTH_SHORT).show()
         }
-    }
-
-    fun interr(view: View) {
-        connectionThread?.connectedThread?.interrupt()
-        //finishAffinity()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        connectionThread?.cancel()
-        connectionThread?.connectedThread?.interrupt()
-        connectionThread = null
+        bluetoothHelper.stop()
+        log("onDestroy")
     }
 
     override fun onBackPressed() {
         super.onBackPressed()
         finishAffinity()
-    }
-
-    override fun onResume() {
-        super.onResume()
     }
 }

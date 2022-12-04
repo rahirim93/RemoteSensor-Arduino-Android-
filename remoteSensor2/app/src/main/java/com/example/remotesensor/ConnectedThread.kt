@@ -178,6 +178,15 @@ class ConnectedThread (mmSocket: BluetoothSocket?, myHandler: Handler) : Thread(
                         list.clear()
                     }
                     while (mode == 4532) {
+                        try {
+                            sendMessage("")
+                        } catch (e: Exception) {
+                            handler.sendMessage(handler.obtainMessage(6))
+                            cancel()
+                            Log.d("MyLog", "Input stream was disconnected", e)
+                            break
+                        }
+                        log("Working")
                         /** Работа алгоритма следующая:
                          *      1. Алгоритм считывает какие-то байты. Переводит их в строку. Строку добавляет в стрингдилдер.
                          *
@@ -226,7 +235,7 @@ class ConnectedThread (mmSocket: BluetoothSocket?, myHandler: Handler) : Thread(
                                 stringBuilder.delete(0, stringBuilder.length)                       // Очищаем стрингбилдер
                                 stringBuilder.append(str2)                                          // Добавляем остаток для дальнейшей обработки
                             }
-                        } catch (e: IOException) {
+                        } catch (e: Exception) {
                             handler.sendMessage(handler.obtainMessage(6))
                             cancel()
                             Log.d("MyLog", "Input stream was disconnected", e)
@@ -250,7 +259,7 @@ class ConnectedThread (mmSocket: BluetoothSocket?, myHandler: Handler) : Thread(
         }
     }
 
-    private fun cancel() {
+    fun cancel() {
         mmOutStream?.close()
         mmInStream?.close()
     }
